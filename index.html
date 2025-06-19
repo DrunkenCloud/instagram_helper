@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <meta
+      http-equiv="X-Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'"
+    />
+    <title>Hello from Electron renderer!</title>
+  </head>
+  <body>
+    <h1>Instagram Bulk Message Sender</h1>
+    <form id="input-form">
+      <label for="csv-input">Upload CSV file:</label>
+      <input type="file" id="csv-input" accept=".csv" required><br>
+      <pre id="csv-preview" style="background:#f6f6f6;padding:8px;max-height:200px;overflow:auto;"></pre>
+      <br>
+      <label for="folder-input">Select message templates folder:</label>
+      <input type="file" id="folder-input" webkitdirectory directory multiple required><br>
+      <div id="templates-preview" style="background:#f6f6f6;padding:8px;max-height:200px;overflow:auto;"></div>
+      <br>
+      <button type="submit">Start Sending Messages</button>
+    </form>
+    <div id="status"></div>
+    <script src="renderer.js"></script>
+  </body>
+</html>

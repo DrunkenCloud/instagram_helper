@@ -1,0 +1,35 @@
+{
+  "name": "instagram-dm-bot",
+  "version": "1.0.0",
+  "description": "Instagram DM bot",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node script.js",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never",
+    "dist:win": "electron-builder --win",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  },
+  "keywords": [
+    "instagram",
+    "message",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "files": [
+      "**/*",
+      "!playwright-data"
+    ]
+  }
+}
