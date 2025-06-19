@@ -15,35 +15,123 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <div class="container">
-      <h1>Instagram Bulk Message Sender</h1>
-      <div class="desc">Send personalized Instagram DMs in bulk. Upload your CSV, message templates, and configure timing below.</div>
-      <form id="input-form">
-        <label for="csv-input">Upload CSV file:</label><br>
-        <input type="file" id="csv-input" accept=".csv" required><br>
-        <pre id="csv-preview"></pre>
-        <label for="folder-input">Select message templates folder:</label><br>
-        <input type="file" id="folder-input" webkitdirectory directory multiple required><br>
-        <div id="templates-preview"></div>
-        <fieldset style="margin-bottom:10px;">
-          <legend>Timing Configuration</legend>
-          <label>Sleep before each message (seconds):
-            <input type="number" id="sleep-min" value="0.5" min="0" step="0.1" style="width:60px;"> -
-            <input type="number" id="sleep-max" value="2" min="0" step="0.1" style="width:60px;">
-          </label><br><br>
-          <label>After every
-            <input type="number" id="batch-count" value="10" min="1" step="1" style="width:60px;">
-            messages, sleep for (seconds):
-            <input type="number" id="batch-sleep-min" value="10" min="0" step="1" style="width:60px;"> -
-            <input type="number" id="batch-sleep-max" value="30" min="0" step="1" style="width:60px;">
-          </label>
-        </fieldset>
-        <input type="submit" value="Start Sending Messages">
-      </form>
-      <div id="status"></div>
-      <button id="pause-btn" type="button" disabled>Pause</button>
-      <button id="resume-btn" type="button" disabled>Resume</button>
-      <button id="stop-btn" type="button" disabled>Stop</button>
+    <div class="app-container">
+      <header class="app-header">
+        <div class="header-icon">📱</div>
+        <h1>Instagram Bulk Message Sender</h1>
+        <p class="header-subtitle">Send personalized Instagram DMs in bulk with smart timing controls</p>
+      </header>
+
+      <main class="main-content">
+        <form id="input-form" class="form-container">
+          
+          <!-- Step 1: CSV Upload -->
+          <section class="form-section">
+            <div class="section-header">
+              <span class="step-number">1</span>
+              <h2>Upload Contact List</h2>
+            </div>
+            <div class="file-upload-area" id="csv-upload-area">
+              <div class="upload-icon">📄</div>
+              <label for="csv-input" class="upload-label">
+                <span class="upload-text">Drop your CSV file here or click to browse</span>
+                <span class="upload-hint">Supported format: .csv</span>
+              </label>
+              <input type="file" id="csv-input" accept=".csv" required>
+            </div>
+            <h3>CSV Preview</h3>
+            <div id="csv-preview" class="preview-section">
+              <div class="table-container">
+                <table id="contacts-table">
+                  <thead id="table-head"></thead>
+                  <tbody id="table-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </section>
+
+          <!-- Step 2: Templates Upload -->
+          <section class="form-section">
+            <div class="section-header">
+              <span class="step-number">2</span>
+              <h2>Select Message Templates</h2>
+            </div>
+            <div class="file-upload-area" id="templates-upload-area">
+              <div class="upload-icon">📝</div>
+              <label for="folder-input" class="upload-label">
+                <span class="upload-text">Select folder containing message templates</span>
+                <span class="upload-hint">Only .txt files will be used</span>
+              </label>
+              <input type="file" id="folder-input" webkitdirectory directory multiple required>
+            </div>
+            <div id="templates-preview" class="preview-section"></div>
+          </section>
+
+          <!-- Step 3: Timing Configuration -->
+          <section class="form-section">
+            <div class="section-header">
+              <span class="step-number">3</span>
+              <h2>Configure Timing</h2>
+            </div>
+            <div class="timing-grid">
+              <div class="timing-card">
+                <h3>Message Delay</h3>
+                <p>Sleep time between each message</p>
+                <div class="range-input">
+                  <input type="number" id="sleep-min" value="0.5" min="0" step="0.1" placeholder="Min">
+                  <span class="range-separator">to</span>
+                  <input type="number" id="sleep-max" value="2" min="0" step="0.1" placeholder="Max">
+                  <span class="unit">seconds</span>
+                </div>
+              </div>
+              <div class="timing-card">
+                <h3>Batch Settings</h3>
+                <p>Extended break after multiple messages</p>
+                <div class="batch-controls">
+                  <div class="batch-count">
+                    <label>After every</label>
+                    <input type="number" id="batch-count" value="10" min="1" step="1">
+                    <span>messages</span>
+                  </div>
+                  <div class="range-input">
+                    <input type="number" id="batch-sleep-min" value="10" min="0" step="1" placeholder="Min">
+                    <span class="range-separator">to</span>
+                    <input type="number" id="batch-sleep-max" value="30" min="0" step="1" placeholder="Max">
+                    <span class="unit">seconds</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Submit Button -->
+          <div class="submit-section">
+            <button type="submit" class="submit-btn">
+              <span class="btn-icon">🚀</span>
+              Start Sending Messages
+            </button>
+          </div>
+        </form>
+
+        <!-- Status and Controls -->
+        <section class="status-section">
+          <div id="status" class="status-display"></div>
+          <div class="control-buttons">
+            <button id="pause-btn" type="button" class="control-btn pause-btn" disabled>
+              <span class="btn-icon">⏸️</span>
+              Pause
+            </button>
+            <button id="resume-btn" type="button" class="control-btn resume-btn" disabled>
+              <span class="btn-icon">▶️</span>
+              Resume
+            </button>
+            <button id="stop-btn" type="button" class="control-btn stop-btn" disabled>
+              <span class="btn-icon">⏹️</span>
+              Stop
+            </button>
+          </div>
+        </section>
+      </main>
     </div>
     <script src="renderer.js"></script>
   </body>
