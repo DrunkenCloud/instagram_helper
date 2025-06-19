@@ -519,4 +519,19 @@
   
   .preview-section::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
+  }
+  
+  #live-log {
+    background: #f3f4f6;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    min-height: 48px;
+    max-height: 120px;
+    font-family: 'Fira Mono', 'Consolas', 'Menlo', monospace;
+    font-size: 0.97em;
+    color: #334155;
+    overflow-y: auto;
+    white-space: pre-line;
   }  

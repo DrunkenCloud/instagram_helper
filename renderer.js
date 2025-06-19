@@ -298,3 +298,14 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
     showStatus("Ready to send bulk Instagram messages. Please upload your files to get started.", "processing")
   })
   
+  // Live log event listener
+  const liveLogDiv = document.getElementById('live-log');
+  if (window.electronAPI && window.electronAPI.onLiveLog) {
+    window.electronAPI.onLiveLog((message) => {
+      if (liveLogDiv) {
+        liveLogDiv.innerHTML += message + '<br>';
+        liveLogDiv.scrollTop = liveLogDiv.scrollHeight;
+      }
+    });
+  }
+  
