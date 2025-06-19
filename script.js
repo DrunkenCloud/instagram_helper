@@ -8,29 +8,28 @@ const randomSleep = (min, max) => {
 
 // Refactored: Export sendMessages(contacts, templates, config, control)
 async function sendMessages(contacts, templates, config = {}, control = {}) {
-    const sleepMin = typeof config.sleepMin === 'number' ? config.sleepMin : 0.5;
-    const sleepMax = typeof config.sleepMax === 'number' ? config.sleepMax : 2;
+    const sleepMin = typeof config.sleepMin === 'number' ? config.sleepMin : 15;
+    const sleepMax = typeof config.sleepMax === 'number' ? config.sleepMax : 20;
     const batchCount = typeof config.batchCount === 'number' ? config.batchCount : 10;
-    const batchSleepMin = typeof config.batchSleepMin === 'number' ? config.batchSleepMin : 10;
-    const batchSleepMax = typeof config.batchSleepMax === 'number' ? config.batchSleepMax : 30;
+    const batchSleepMin = typeof config.batchSleepMin === 'number' ? config.batchSleepMin : 40;
+    const batchSleepMax = typeof config.batchSleepMax === 'number' ? config.batchSleepMax : 60;
 
     const browser = await chromium.launchPersistentContext('./playwright-data', {
         headless: false
     });
     const page = browser.pages()[0] || await browser.newPage();
     await page.goto('https://www.instagram.com/');
-    console.log('Waiting 60 seconds for you to login manually...');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 2000));
     let sentCount = 0;
     for (const contact of contacts) {
         const username = contact.username;
         if (!username) continue;
-        // Check for stop before sending
+
         if (control.stopped) {
             console.log('🛑 Sending stopped by user. Exiting...');
             break;
         }
-        // Pause loop
+        
         while (control.paused) {
             if (control.stopped) {
                 console.log('🛑 Sending stopped by user during pause. Exiting...');
@@ -48,11 +47,15 @@ async function sendMessages(contacts, templates, config = {}, control = {}) {
             await randomSleep(1, 2);
             try {
                 const searchInput = await page.waitForSelector('input[aria-label="Search input"]', { timeout: 10000 });
-                await searchInput.fill(''); // Clear any existing text
-                await randomSleep(0.5, 1);
-                await searchInput.fill(username); // Type the username
-                console.log(`✅ Typed username: ${username}`);
+                await searchInput.fill('');
+                await randomSleep(2, 3);
+                // Type username character by character
+                for (const char of username) {
+                    await searchInput.press(char);
+                    await randomSleep(0.10, 0.20); // small delay between keystrokes
+                }
                 await randomSleep(2, 4);
+
                 const userResult = await page.waitForSelector('xpath=/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div[2]/div/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/a[1]', { timeout: 10000 });
                 await userResult.click();
                 console.log(`✅ Clicked on first user result for ${username}`);
@@ -83,7 +86,7 @@ async function sendMessages(contacts, templates, config = {}, control = {}) {
                     console.log(`🔍 Message button not found, looking for 3 dots menu...`);
                     const threeDotsButton = await page.waitForSelector('div[role="button"] svg[aria-label="Options"]', { timeout: 60000 });
                     await threeDotsButton.click();
-                    await randomSleep(0.5, 2);
+                    await randomSleep(1, 3);
                     const sendMessageButton = await page.waitForSelector('button:has-text("Send message")', { timeout: 5000 });
                     await sendMessageButton.click();
                     console.log(`✅ Found Send message option in 3 dots menu for ${username}`);

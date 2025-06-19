@@ -214,27 +214,31 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
   setupDragAndDrop(templatesUploadArea, folderInput)
   
   // Enhanced button control logic
-  const pauseBtn = document.getElementById("pause-btn")
-  const resumeBtn = document.getElementById("resume-btn")
+  const pauseResumeBtn = document.getElementById("pause-resume-btn")
   const stopBtn = document.getElementById("stop-btn")
+  let isPaused = false
   
   function setButtonStates(state) {
-    const buttons = [pauseBtn, resumeBtn, stopBtn]
-  
     // Reset all buttons
-    buttons.forEach((btn) => {
-      btn.disabled = true
-      btn.classList.remove("loading")
-    })
+    pauseResumeBtn.disabled = true
+    stopBtn.disabled = true
+    pauseResumeBtn.textContent = "Pause"
+    pauseResumeBtn.classList.remove("loading")
+    stopBtn.classList.remove("loading")
+    isPaused = false
   
     if (state === "idle") {
       // All buttons disabled
     } else if (state === "sending") {
-      pauseBtn.disabled = false
+      pauseResumeBtn.disabled = false
       stopBtn.disabled = false
+      pauseResumeBtn.textContent = "Pause"
+      isPaused = false
     } else if (state === "paused") {
-      resumeBtn.disabled = false
+      pauseResumeBtn.disabled = false
       stopBtn.disabled = false
+      pauseResumeBtn.textContent = "Resume"
+      isPaused = true
     }
   }
   
@@ -242,28 +246,29 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
   setButtonStates("idle")
   
   // Enhanced button event handlers with feedback
-  pauseBtn.onclick = () => {
-    pauseBtn.classList.add("loading")
-    if (window.electronAPI && window.electronAPI.pauseSending) {
-      window.electronAPI.pauseSending()
+  pauseResumeBtn.onclick = () => {
+    pauseResumeBtn.classList.add("loading")
+    if (!isPaused) {
+      // Pause
+      if (window.electronAPI && window.electronAPI.pauseSending) {
+        window.electronAPI.pauseSending()
+      }
+      showStatus("⏸️ Pausing message sending...", "processing")
+      setTimeout(() => {
+        setButtonStates("paused")
+        showStatus("⏸️ Message sending paused.", "success")
+      }, 500)
+    } else {
+      // Resume
+      if (window.electronAPI && window.electronAPI.resumeSending) {
+        window.electronAPI.resumeSending()
+      }
+      showStatus("▶️ Resuming message sending...", "processing")
+      setTimeout(() => {
+        setButtonStates("sending")
+        showStatus("▶️ Message sending resumed.", "success")
+      }, 500)
     }
-    showStatus("⏸️ Pausing message sending...", "processing")
-    setTimeout(() => {
-      setButtonStates("paused")
-      showStatus("⏸️ Message sending paused.", "success")
-    }, 500)
-  }
-  
-  resumeBtn.onclick = () => {
-    resumeBtn.classList.add("loading")
-    if (window.electronAPI && window.electronAPI.resumeSending) {
-      window.electronAPI.resumeSending()
-    }
-    showStatus("▶️ Resuming message sending...", "processing")
-    setTimeout(() => {
-      setButtonStates("sending")
-      showStatus("▶️ Message sending resumed.", "success")
-    }, 500)
   }
   
   stopBtn.onclick = () => {
