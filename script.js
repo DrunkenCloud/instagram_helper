@@ -6,8 +6,14 @@ const randomSleep = (min, max) => {
     return new Promise(resolve => setTimeout(resolve, delay * 1000));
 };
 
-// Refactored: Export sendMessages(contacts, templates)
-async function sendMessages(contacts, templates) {
+// Refactored: Export sendMessages(contacts, templates, config, control)
+async function sendMessages(contacts, templates, config = {}, control = {}) {
+    const sleepMin = typeof config.sleepMin === 'number' ? config.sleepMin : 0.5;
+    const sleepMax = typeof config.sleepMax === 'number' ? config.sleepMax : 2;
+    const batchCount = typeof config.batchCount === 'number' ? config.batchCount : 10;
+    const batchSleepMin = typeof config.batchSleepMin === 'number' ? config.batchSleepMin : 10;
+    const batchSleepMax = typeof config.batchSleepMax === 'number' ? config.batchSleepMax : 30;
+
     const browser = await chromium.launchPersistentContext('./playwright-data', {
         headless: false
     });
@@ -15,9 +21,25 @@ async function sendMessages(contacts, templates) {
     await page.goto('https://www.instagram.com/');
     console.log('Waiting 60 seconds for you to login manually...');
     await new Promise(resolve => setTimeout(resolve, 3000));
+    let sentCount = 0;
     for (const contact of contacts) {
         const username = contact.username;
         if (!username) continue;
+        // Check for stop before sending
+        if (control.stopped) {
+            console.log('🛑 Sending stopped by user. Exiting...');
+            break;
+        }
+        // Pause loop
+        while (control.paused) {
+            if (control.stopped) {
+                console.log('🛑 Sending stopped by user during pause. Exiting...');
+                await browser.close();
+                return;
+            }
+            console.log('⏸️ Paused. Waiting 5 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 5000));
+        }
         try {
             console.log(`🔍 Searching for profile ${username}...`);
             const searchButtonAlt = await page.waitForSelector('a[role="link"] svg[aria-label="Search"]', { timeout: 10000 });
@@ -79,9 +101,17 @@ async function sendMessages(contacts, templates) {
                 await messageInput.fill(''); // Clear the input
                 await randomSleep(0.5, 1.5);
                 await messageInput.fill(personalizedMessage); // Type the personalized message
-                await randomSleep(0.5, 2);
+                // Sleep for a random time before sending (user-configurable)
+                await randomSleep(sleepMin, sleepMax);
                 await messageInput.press('Enter');
                 console.log(`✅ Sent to ${username}: ${personalizedMessage}`);
+                sentCount++;
+                // After every batchCount messages, sleep for a longer random time
+                if (sentCount % batchCount === 0) {
+                    const batchSleep = Math.random() * (batchSleepMax - batchSleepMin) + batchSleepMin;
+                    console.log(`⏸️ Batch sleep for ${batchSleep.toFixed(1)} seconds after ${sentCount} messages...`);
+                    await new Promise(resolve => setTimeout(resolve, batchSleep * 1000));
+                }
                 await randomSleep(2, 5);
             } catch (error) {
                 console.log(`❌ Failed to load DM page for ${username}, skipping...`);

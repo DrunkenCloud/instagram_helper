@@ -34,18 +34,34 @@ document.getElementById('input-form').addEventListener('submit', async (e) => {
     messages[file.name] = await file.text();
   }
 
+  // Read timing configuration
+  const sleepMin = parseFloat(document.getElementById('sleep-min').value) || 0.5;
+  const sleepMax = parseFloat(document.getElementById('sleep-max').value) || 2;
+  const batchCount = parseInt(document.getElementById('batch-count').value) || 10;
+  const batchSleepMin = parseFloat(document.getElementById('batch-sleep-min').value) || 10;
+  const batchSleepMax = parseFloat(document.getElementById('batch-sleep-max').value) || 30;
+
   statusDiv.textContent = `Loaded ${contacts.length} contacts and ${files.length} message templates.`;
 
-  // TODO: Send contacts and messages to main process to start sending
-  if (window.electronAPI && window.electronAPI.startSending) {
-    const result = await window.electronAPI.startSending({ contacts, messages });
+  // Send all data to main process
+  const config = { sleepMin, sleepMax, batchCount, batchSleepMin, batchSleepMax };
+  setButtonStates('sending'); // Always enable buttons immediately
+  let result;
+  try {
+    if (window.electronAPI && window.electronAPI.startSending) {
+      result = await window.electronAPI.startSending({ contacts, messages, config });
+    } else if (window.ipcRenderer) {
+      result = await window.ipcRenderer.invoke('start-sending', { contacts, messages, config });
+    } else {
+      statusDiv.textContent = 'IPC not available.';
+      setButtonStates('idle');
+      return;
+    }
     statusDiv.textContent = result.ok ? 'Started sending messages!' : 'Failed to start.';
-  } else if (window.ipcRenderer) {
-    // Fallback for contextBridge not set up
-    const result = await window.ipcRenderer.invoke('start-sending', { contacts, messages });
-    statusDiv.textContent = result.ok ? 'Started sending messages!' : 'Failed to start.';
-  } else {
-    statusDiv.textContent = 'IPC not available.';
+  } catch (err) {
+    statusDiv.textContent = 'Error: ' + (err.message || err);
+  } finally {
+    setButtonStates('idle'); // Always reset buttons when done
   }
 });
 
@@ -72,4 +88,41 @@ folderInput.addEventListener('change', async () => {
     out += `<b>${file.name}</b>\n` + content.split(/\r?\n/).slice(0, 5).join('\n') + '\n\n';
   }
   templatesPreview.innerHTML = out.replace(/\n/g, '<br>');
-}); 
+});
+
+// Pause/Resume/Stop button logic
+const pauseBtn = document.getElementById('pause-btn');
+const resumeBtn = document.getElementById('resume-btn');
+const stopBtn = document.getElementById('stop-btn');
+
+let sending = false;
+
+function setButtonStates(state) {
+  if (state === 'idle') {
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = true;
+    stopBtn.disabled = true;
+  } else if (state === 'sending') {
+    pauseBtn.disabled = false;
+    resumeBtn.disabled = true;
+    stopBtn.disabled = false;
+  } else if (state === 'paused') {
+    pauseBtn.disabled = true;
+    resumeBtn.disabled = false;
+    stopBtn.disabled = false;
+  }
+}
+setButtonStates('idle');
+
+pauseBtn.onclick = () => {
+  if (window.electronAPI && window.electronAPI.pauseSending) window.electronAPI.pauseSending();
+  setButtonStates('paused');
+};
+resumeBtn.onclick = () => {
+  if (window.electronAPI && window.electronAPI.resumeSending) window.electronAPI.resumeSending();
+  setButtonStates('sending');
+};
+stopBtn.onclick = () => {
+  if (window.electronAPI && window.electronAPI.stopSending) window.electronAPI.stopSending();
+  setButtonStates('idle');
+}; 

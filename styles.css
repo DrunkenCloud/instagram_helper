@@ -1,0 +1,111 @@
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #f4f6fb;
+    margin: 0;
+    padding: 0;
+  }
+  .container {
+    max-width: 540px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    padding: 32px 28px 24px 28px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 0.5em;
+    color: #2d3748;
+  }
+  .desc {
+    text-align: center;
+    color: #4a5568;
+    margin-bottom: 1.5em;
+  }
+  form label {
+    font-weight: 500;
+    color: #2d3748;
+  }
+  input[type="file"], input[type="number"] {
+    margin-top: 4px;
+    margin-bottom: 12px;
+  }
+  fieldset {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px 16px 8px 16px;
+    background: #f9fafb;
+  }
+  legend {
+    color: #4a5568;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  #csv-preview, #templates-preview {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 12px;
+    font-size: 0.95em;
+    color: #374151;
+    max-height: 180px;
+    overflow: auto;
+  }
+  #status {
+    margin: 18px 0 10px 0;
+    min-height: 24px;
+    color: #2563eb;
+    font-weight: 500;
+    text-align: center;
+  }
+  button, input[type="submit"] {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    font-weight: 500;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:disabled {
+    background: #cbd5e1;
+    color: #fff;
+    cursor: not-allowed;
+  }
+  button:last-child {
+    margin-right: 0;
+  }
+  @media (max-width: 600px) {
+    .container { padding: 16px 4vw; }
+  }
+  .csv-header {
+    background: #e0e7ef;
+    color: #1e293b;
+    font-weight: bold;
+    border-bottom: 2px solid #2563eb;
+    padding: 4px 0;
+    display: block;
+  }
+  .csv-row {
+    display: block;
+    padding: 2px 0;
+  }
+  .template-preview {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    padding: 8px 10px 6px 10px;
+  }
+  .template-filename {
+    font-weight: bold;
+    color: #2563eb;
+    margin-bottom: 4px;
+    display: block;
+  }
