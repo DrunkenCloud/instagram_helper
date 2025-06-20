@@ -67,7 +67,30 @@
             <div id="templates-preview" class="preview-section"></div>
           </section>
 
-          <!-- Step 3: Timing Configuration -->
+          <!-- Step 3: Chrome/Chromium Path -->
+          <section class="form-section">
+            <div class="section-header">
+              <span class="step-number">3</span>
+              <h2>Chrome/Chromium Executable Path</h2>
+            </div>
+            <div class="chrome-path-section">
+              <label for="chrome-path">Chrome/Chromium Path:</label>
+              <div class="path-input-group">
+                <input type="text" id="chrome-path" placeholder="e.g., /usr/bin/google-chrome" required />
+                <button type="button" id="browse-chrome-btn" class="btn btn-secondary">Browse</button>
+              </div>
+              <small class="help-text">Enter the path to your Chrome/Chromium executable. Common paths:</small>
+              <ul class="path-examples">
+                <li>Linux: /usr/bin/google-chrome, /snap/bin/chromium</li>
+                <li>Windows: C:\Program Files\Google\Chrome\Application\chrome.exe</li>
+                <li>macOS: /Applications/Google Chrome.app/Contents/MacOS/Google Chrome</li>
+              </ul>
+            </div>
+            <!-- Hidden file input for browse functionality -->
+            <input type="file" id="chrome-path-file-input" class="hidden-file-input" accept=".exe,.app">
+          </section>
+
+          <!-- Step 4: Timing Configuration -->
           <section class="form-section">
             <div class="section-header">
               <span class="step-number">3</span>

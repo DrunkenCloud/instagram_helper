@@ -29,6 +29,14 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
       const values = row.split(",")
       return Object.fromEntries(headers.map((h, i) => [h, values[i]]))
     })
+
+    const chromeExecutablePath = document.getElementById("chrome-path").value.trim()
+    if (!chromeExecutablePath) {
+      showStatus("Please enter Chrome/Chromium executable path.", "error")
+      return
+    }
+
+
   
     // Read all txt files
     const messages = {}
@@ -46,7 +54,7 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
     showStatus(`✅ Loaded ${contacts.length} contacts and ${files.length} message templates. Starting...`, "processing")
   
     // Send all data to main process
-    const config = { sleepMin, sleepMax, batchCount, batchSleepMin, batchSleepMax }
+    const config = { sleepMin, sleepMax, batchCount, batchSleepMin, batchSleepMax, chromeExecutablePath }
     setButtonStates("sending")
     let result
     try {
@@ -70,242 +78,267 @@ document.getElementById("input-form").addEventListener("submit", async (e) => {
         setButtonStates("idle")
       }
     }
-  })
+})
   
   // Enhanced status display function
-  function showStatus(message, type = "processing") {
-    const statusDiv = document.getElementById("status")
-    statusDiv.textContent = message
-    statusDiv.className = `status-display ${type}`
+function showStatus(message, type = "processing") {
+  const statusDiv = document.getElementById("status")
+  statusDiv.textContent = message
+  statusDiv.className = `status-display ${type}`
+}
+
+// Enhanced CSV preview with table formatting
+const csvInput = document.getElementById("csv-input")
+const csvPreview = document.getElementById("csv-preview")
+const csvUploadArea = document.getElementById("csv-upload-area")
+
+csvInput.addEventListener("change", async () => {
+  const file = csvInput.files[0]
+  if (!file) {
+    csvPreview.classList.remove("show")
+    csvUploadArea.classList.remove("file-uploaded")
+    return
   }
-  
-  // Enhanced CSV preview with table formatting
-  const csvInput = document.getElementById("csv-input")
-  const csvPreview = document.getElementById("csv-preview")
-  const csvUploadArea = document.getElementById("csv-upload-area")
-  
-  csvInput.addEventListener("change", async () => {
-    const file = csvInput.files[0]
-    if (!file) {
-      csvPreview.classList.remove("show")
-      csvUploadArea.classList.remove("file-uploaded")
-      return
-    }
-  
-    csvUploadArea.classList.add("file-uploaded")
-    const text = await file.text()
-    const lines = text.split(/\r?\n/).filter((line) => line.trim())
-  
-    if (lines.length > 0) {
-      const [headerLine, ...dataLines] = lines
-      const headers = headerLine.split(",").map((h) => h.trim())
-  
-      // Create table header
-      const tableHead = document.getElementById("table-head")
-      const headerRow = document.createElement("tr")
-      headers.forEach((header) => {
-        const th = document.createElement("th")
-        th.textContent = header
-        headerRow.appendChild(th)
-      })
-      tableHead.innerHTML = ""
-      tableHead.appendChild(headerRow)
-  
-      // Create table body (show first 50 rows)
-      const tableBody = document.getElementById("table-body")
-      tableBody.innerHTML = ""
-  
-      const rowsToShow = dataLines.slice(0, 50)
-      rowsToShow.forEach((line, index) => {
-        if (line.trim()) {
-          const values = line.split(",").map((v) => v.trim())
-          const row = document.createElement("tr")
-  
-          values.forEach((value, colIndex) => {
-            const td = document.createElement("td")
-            td.textContent = value || "-"
-            row.appendChild(td)
-          })
-  
-          // Add click handler for row selection
-          row.addEventListener("click", () => {
-            // Remove previous selection
-            tableBody.querySelectorAll("tr.selected").forEach((r) => r.classList.remove("selected"))
-            // Add selection to clicked row
-            row.classList.add("selected")
-          })
-  
-          tableBody.appendChild(row)
-        }
-      })
-  
-      // Show total count if there are more rows
-      if (dataLines.length > 50) {
-        const infoRow = document.createElement("tr")
-        const infoCell = document.createElement("td")
-        infoCell.colSpan = headers.length
-        infoCell.textContent = `... and ${dataLines.length - 50} more rows (${dataLines.length} total contacts)`
-        infoCell.style.textAlign = "center"
-        infoCell.style.fontStyle = "italic"
-        infoCell.style.color = "#6b7280"
-        infoCell.style.background = "#f9fafb"
-        infoRow.appendChild(infoCell)
-        tableBody.appendChild(infoRow)
-      }
-  
-      csvPreview.classList.add("show")
-    }
-  })
-  
-  // Enhanced templates preview
-  const folderInput = document.getElementById("folder-input")
-  const templatesPreview = document.getElementById("templates-preview")
-  const templatesUploadArea = document.getElementById("templates-upload-area")
-  
-  folderInput.addEventListener("change", async () => {
-    const files = Array.from(folderInput.files)
-      .filter((f) => f.name.endsWith(".txt"))
-      .slice(0, 10)
-    if (files.length === 0) {
-      templatesPreview.classList.remove("show")
-      templatesUploadArea.classList.remove("file-uploaded")
-      return
-    }
-  
-    templatesUploadArea.classList.add("file-uploaded")
-    let out = ""
-    for (const file of files) {
-      const content = await file.text()
-      const preview = content.split(/\r?\n/).slice(0, 3).join("<br>")
-      out += `<div class="template-preview">
-        <span class="template-filename">${file.name}</span>
-        ${preview}${content.split(/\r?\n/).length > 3 ? "<br>..." : ""}
-      </div>`
-    }
-    templatesPreview.innerHTML = out
-    templatesPreview.classList.add("show")
-  })
-  
-  // Enhanced drag and drop functionality
-  function setupDragAndDrop(uploadArea, fileInput) {
-    uploadArea.addEventListener("dragover", (e) => {
-      e.preventDefault()
-      uploadArea.classList.add("dragover")
+
+  csvUploadArea.classList.add("file-uploaded")
+  const text = await file.text()
+  const lines = text.split(/\r?\n/).filter((line) => line.trim())
+
+  if (lines.length > 0) {
+    const [headerLine, ...dataLines] = lines
+    const headers = headerLine.split(",").map((h) => h.trim())
+
+    // Create table header
+    const tableHead = document.getElementById("table-head")
+    const headerRow = document.createElement("tr")
+    headers.forEach((header) => {
+      const th = document.createElement("th")
+      th.textContent = header
+      headerRow.appendChild(th)
     })
-  
-    uploadArea.addEventListener("dragleave", (e) => {
-      e.preventDefault()
-      uploadArea.classList.remove("dragover")
-    })
-  
-    uploadArea.addEventListener("drop", (e) => {
-      e.preventDefault()
-      uploadArea.classList.remove("dragover")
-  
-      const files = e.dataTransfer.files
-      if (files.length > 0) {
-        fileInput.files = files
-        fileInput.dispatchEvent(new Event("change"))
+    tableHead.innerHTML = ""
+    tableHead.appendChild(headerRow)
+
+    // Create table body (show first 50 rows)
+    const tableBody = document.getElementById("table-body")
+    tableBody.innerHTML = ""
+
+    const rowsToShow = dataLines.slice(0, 50)
+    rowsToShow.forEach((line, index) => {
+      if (line.trim()) {
+        const values = line.split(",").map((v) => v.trim())
+        const row = document.createElement("tr")
+
+        values.forEach((value, colIndex) => {
+          const td = document.createElement("td")
+          td.textContent = value || "-"
+          row.appendChild(td)
+        })
+
+        // Add click handler for row selection
+        row.addEventListener("click", () => {
+          // Remove previous selection
+          tableBody.querySelectorAll("tr.selected").forEach((r) => r.classList.remove("selected"))
+          // Add selection to clicked row
+          row.classList.add("selected")
+        })
+
+        tableBody.appendChild(row)
       }
     })
+
+    // Show total count if there are more rows
+    if (dataLines.length > 50) {
+      const infoRow = document.createElement("tr")
+      const infoCell = document.createElement("td")
+      infoCell.colSpan = headers.length
+      infoCell.textContent = `... and ${dataLines.length - 50} more rows (${dataLines.length} total contacts)`
+      infoCell.style.textAlign = "center"
+      infoCell.style.fontStyle = "italic"
+      infoCell.style.color = "#6b7280"
+      infoCell.style.background = "#f9fafb"
+      infoRow.appendChild(infoCell)
+      tableBody.appendChild(infoRow)
+    }
+
+    csvPreview.classList.add("show")
   }
-  
-  setupDragAndDrop(csvUploadArea, csvInput)
-  setupDragAndDrop(templatesUploadArea, folderInput)
-  
-  // Enhanced button control logic
-  const pauseResumeBtn = document.getElementById("pause-resume-btn")
-  const stopBtn = document.getElementById("stop-btn")
-  let isPaused = false
-  
-  function setButtonStates(state) {
-    // Reset all buttons
-    pauseResumeBtn.disabled = true
-    stopBtn.disabled = true
+})
+
+// Enhanced templates preview
+const folderInput = document.getElementById("folder-input")
+const templatesPreview = document.getElementById("templates-preview")
+const templatesUploadArea = document.getElementById("templates-upload-area")
+
+// Chrome path browse functionality
+const chromePathInput = document.getElementById("chrome-path")
+const browseBtn = document.getElementById("browse-chrome-btn")
+const hiddenFileInput = document.getElementById("chrome-path-file-input")
+
+browseBtn.addEventListener("click", () => {
+  hiddenFileInput.click()
+})
+
+hiddenFileInput.addEventListener("change", () => {
+  const file = hiddenFileInput.files[0]
+  if (file) {
+    chromePathInput.value = file.path || file.name
+  }
+})
+
+// Optional: Add validation on input change
+chromePathInput.addEventListener("input", () => {
+  const path = chromePathInput.value.trim()
+  if (path) {
+    chromePathInput.style.borderColor = "#10b981"
+  } else {
+    chromePathInput.style.borderColor = ""
+  }
+})
+
+folderInput.addEventListener("change", async () => {
+  const files = Array.from(folderInput.files)
+    .filter((f) => f.name.endsWith(".txt"))
+    .slice(0, 10)
+  if (files.length === 0) {
+    templatesPreview.classList.remove("show")
+    templatesUploadArea.classList.remove("file-uploaded")
+    return
+  }
+
+  templatesUploadArea.classList.add("file-uploaded")
+  let out = ""
+  for (const file of files) {
+    const content = await file.text()
+    const preview = content.split(/\r?\n/).slice(0, 3).join("<br>")
+    out += `<div class="template-preview">
+      <span class="template-filename">${file.name}</span>
+      ${preview}${content.split(/\r?\n/).length > 3 ? "<br>..." : ""}
+    </div>`
+  }
+  templatesPreview.innerHTML = out
+  templatesPreview.classList.add("show")
+})
+
+// Enhanced drag and drop functionality
+function setupDragAndDrop(uploadArea, fileInput) {
+  uploadArea.addEventListener("dragover", (e) => {
+    e.preventDefault()
+    uploadArea.classList.add("dragover")
+  })
+
+  uploadArea.addEventListener("dragleave", (e) => {
+    e.preventDefault()
+    uploadArea.classList.remove("dragover")
+  })
+
+  uploadArea.addEventListener("drop", (e) => {
+    e.preventDefault()
+    uploadArea.classList.remove("dragover")
+
+    const files = e.dataTransfer.files
+    if (files.length > 0) {
+      fileInput.files = files
+      fileInput.dispatchEvent(new Event("change"))
+    }
+  })
+}
+
+setupDragAndDrop(csvUploadArea, csvInput)
+setupDragAndDrop(templatesUploadArea, folderInput)
+
+// Enhanced button control logic
+const pauseResumeBtn = document.getElementById("pause-resume-btn")
+const stopBtn = document.getElementById("stop-btn")
+let isPaused = false
+
+function setButtonStates(state) {
+  // Reset all buttons
+  pauseResumeBtn.disabled = true
+  stopBtn.disabled = true
+  pauseResumeBtn.textContent = "Pause"
+  pauseResumeBtn.classList.remove("loading")
+  stopBtn.classList.remove("loading")
+  isPaused = false
+
+  if (state === "idle") {
+    // All buttons disabled
+  } else if (state === "sending") {
+    pauseResumeBtn.disabled = false
+    stopBtn.disabled = false
     pauseResumeBtn.textContent = "Pause"
-    pauseResumeBtn.classList.remove("loading")
-    stopBtn.classList.remove("loading")
     isPaused = false
-  
-    if (state === "idle") {
-      // All buttons disabled
-    } else if (state === "sending") {
-      pauseResumeBtn.disabled = false
-      stopBtn.disabled = false
-      pauseResumeBtn.textContent = "Pause"
-      isPaused = false
-    } else if (state === "paused") {
-      pauseResumeBtn.disabled = false
-      stopBtn.disabled = false
-      pauseResumeBtn.textContent = "Resume"
-      isPaused = true
-    }
+  } else if (state === "paused") {
+    pauseResumeBtn.disabled = false
+    stopBtn.disabled = false
+    pauseResumeBtn.textContent = "Resume"
+    isPaused = true
   }
-  
-  // Initialize button states
-  setButtonStates("idle")
-  
-  // Enhanced button event handlers with feedback
-  pauseResumeBtn.onclick = () => {
-    pauseResumeBtn.classList.add("loading")
-    if (!isPaused) {
-      // Pause
-      if (window.electronAPI && window.electronAPI.pauseSending) {
-        window.electronAPI.pauseSending()
-      }
-      showStatus("⏸️ Pausing message sending...", "processing")
-      setTimeout(() => {
-        setButtonStates("paused")
-        showStatus("⏸️ Message sending paused.", "success")
-      }, 500)
-    } else {
-      // Resume
-      if (window.electronAPI && window.electronAPI.resumeSending) {
-        window.electronAPI.resumeSending()
-      }
-      showStatus("▶️ Resuming message sending...", "processing")
-      setTimeout(() => {
-        setButtonStates("sending")
-        showStatus("▶️ Message sending resumed.", "success")
-      }, 500)
+}
+
+// Initialize button states
+setButtonStates("idle")
+
+// Enhanced button event handlers with feedback
+pauseResumeBtn.onclick = () => {
+  pauseResumeBtn.classList.add("loading")
+  if (!isPaused) {
+    // Pause
+    if (window.electronAPI && window.electronAPI.pauseSending) {
+      window.electronAPI.pauseSending()
     }
-  }
-  
-  stopBtn.onclick = () => {
-    stopBtn.classList.add("loading")
-    if (window.electronAPI && window.electronAPI.stopSending) {
-      window.electronAPI.stopSending()
-    }
-    showStatus("⏹️ Stopping message sending...", "processing")
+    showStatus("⏸️ Pausing message sending...", "processing")
     setTimeout(() => {
-      setButtonStates("idle")
-      showStatus("⏹️ Message sending stopped.", "success")
+      setButtonStates("paused")
+      showStatus("⏸️ Message sending paused.", "success")
+    }, 500)
+  } else {
+    // Resume
+    if (window.electronAPI && window.electronAPI.resumeSending) {
+      window.electronAPI.resumeSending()
+    }
+    showStatus("▶️ Resuming message sending...", "processing")
+    setTimeout(() => {
+      setButtonStates("sending")
+      showStatus("▶️ Message sending resumed.", "success")
     }, 500)
   }
-  
-  // Input validation and real-time feedback
-  const numberInputs = document.querySelectorAll('input[type="number"]')
-  numberInputs.forEach((input) => {
-    input.addEventListener("input", () => {
-      if (input.value < 0) {
-        input.value = 0
-      }
-    })
-  })
-  
-  // Initialize the app
-  document.addEventListener("DOMContentLoaded", () => {
-    showStatus("Ready to send bulk Instagram messages. Please upload your files to get started.", "processing")
-  })
-  
-  // Live log event listener
-  const liveLogDiv = document.getElementById('live-log');
-  if (window.electronAPI && window.electronAPI.onLiveLog) {
-    window.electronAPI.onLiveLog((message) => {
-      if (liveLogDiv) {
-        liveLogDiv.innerHTML += message + '<br>';
-        liveLogDiv.scrollTop = liveLogDiv.scrollHeight;
-      }
-    });
+}
+
+stopBtn.onclick = () => {
+  stopBtn.classList.add("loading")
+  if (window.electronAPI && window.electronAPI.stopSending) {
+    window.electronAPI.stopSending()
   }
-  
+  showStatus("⏹️ Stopping message sending...", "processing")
+  setTimeout(() => {
+    setButtonStates("idle")
+    showStatus("⏹️ Message sending stopped.", "success")
+  }, 500)
+}
+
+// Input validation and real-time feedback
+const numberInputs = document.querySelectorAll('input[type="number"]')
+numberInputs.forEach((input) => {
+  input.addEventListener("input", () => {
+    if (input.value < 0) {
+      input.value = 0
+    }
+  })
+})
+
+// Initialize the app
+document.addEventListener("DOMContentLoaded", () => {
+  showStatus("Ready to send bulk Instagram messages. Please upload your files to get started.", "processing")
+})
+
+// Live log event listener
+const liveLogDiv = document.getElementById('live-log');
+if (window.electronAPI && window.electronAPI.onLiveLog) {
+  window.electronAPI.onLiveLog((message) => {
+    if (liveLogDiv) {
+      liveLogDiv.innerHTML += message + '<br>';
+      liveLogDiv.scrollTop = liveLogDiv.scrollHeight;
+    }
+  });
+}

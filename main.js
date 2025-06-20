@@ -44,13 +44,20 @@ ipcMain.handle('start-sending', async (event, { contacts, messages, config }) =>
     const batchSleepMin = typeof config.batchSleepMin === 'number' ? config.batchSleepMin : 40;
     const batchSleepMax = typeof config.batchSleepMax === 'number' ? config.batchSleepMax : 60;
 
-    const browser = await chromium.launchPersistentContext('./playwright-data', {
-        headless: false
-    });
+    const browserOptions = {
+      headless: false
+    };
+  
+    // Use custom Chrome executable if provided
+    if (config.chromeExecutablePath && config.chromeExecutablePath.trim()) {
+        browserOptions.executablePath = config.chromeExecutablePath.trim();
+    }
+  
+    const browser = await chromium.launchPersistentContext('./playwright-data', browserOptions);
+  
     const page = browser.pages()[0] || await browser.newPage();
     await page.goto('https://www.instagram.com/');
-    console.log('Waiting 60 seconds for you to login manually...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3000));
     let sentCount = 0;
     for (const contact of contacts) {
         const username = contact.username;
@@ -125,11 +132,10 @@ ipcMain.handle('start-sending', async (event, { contacts, messages, config }) =>
                     await messageInput.press(char);
                     await randomSleep(0.10, 0.20);
                 }
-                await randomSleep(sleepMin, sleepMax);
                 await messageInput.press('Enter');
                 sendLiveLog(`✅ Sent to ${username}`);
                 sentCount++;
-                await randomSleep(2, 5);
+                await randomSleep(sleepMin, sleepMax);
             } catch (error) {
                 sendLiveLog(`❌ Failed to load DM page for ${username}, skipping...`);
                 continue;
