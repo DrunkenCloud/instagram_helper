@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron/main')
 const { chromium } = require('playwright');
 const path = require('path')
+const os = require('os');
 
 let mainWindow = null;
 const createWindow = () => {
@@ -52,12 +53,13 @@ ipcMain.handle('start-sending', async (event, { contacts, messages, config }) =>
     if (config.chromeExecutablePath && config.chromeExecutablePath.trim()) {
         browserOptions.executablePath = config.chromeExecutablePath.trim();
     }
-  
-    const browser = await chromium.launchPersistentContext('./playwright-data', browserOptions);
+
+    const profilePath = path.join(os.homedir(), '.instagram-bulk-sender');
+    const browser = await chromium.launchPersistentContext(profilePath, browserOptions);
   
     const page = browser.pages()[0] || await browser.newPage();
     await page.goto('https://www.instagram.com/');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise(resolve => setTimeout(resolve, 6000));
     let sentCount = 0;
     for (const contact of contacts) {
         const username = contact.username;
@@ -132,6 +134,7 @@ ipcMain.handle('start-sending', async (event, { contacts, messages, config }) =>
                     await messageInput.press(char);
                     await randomSleep(0.10, 0.20);
                 }
+                await randomSleep(1, 2);
                 await messageInput.press('Enter');
                 sendLiveLog(`✅ Sent to ${username}`);
                 sentCount++;
