@@ -9,10 +9,16 @@ ACCOUNT_USERNAME = os.getenv("ACCOUNT_USERNAME")
 ACCOUNT_PASSWORD = os.getenv("ACCOUNT_PASSWORD")
 
 try:
-    cl.load_settings("session.json")
-    cl.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD)
+    if os.path.exists("session.json"):
+        print("📂 Loading existing session...")
+        cl.load_settings("session.json")
+        print("✅ Session loaded successfully!")
+    else:
+        cl.login(ACCOUNT_USERNAME, ACCOUNT_PASSWORD)
+        cl.dump_settings("session.json")
 except Exception as e:
-    print("Login failed:", e)
+    print(f"❌ Login failed: {e}")
+    exit(1)
 
 @app.route("/send_dm", methods=["POST"])
 def send_dm():
