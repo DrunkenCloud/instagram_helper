@@ -48,110 +48,133 @@ ipcMain.handle('start-sending', async (event, { contacts, messages, config }) =>
     const browserOptions = {
       headless: false
     };
-  
+
     // Use custom Chrome executable if provided
     if (config.chromeExecutablePath && config.chromeExecutablePath.trim()) {
-        browserOptions.executablePath = config.chromeExecutablePath.trim();
+      browserOptions.executablePath = config.chromeExecutablePath.trim();
     }
 
     const profilePath = path.join(os.homedir(), '.instagram-bulk-sender');
     const browser = await chromium.launchPersistentContext(profilePath, browserOptions);
-  
+
     const page = browser.pages()[0] || await browser.newPage();
     await page.goto('https://www.instagram.com/');
     await new Promise(resolve => setTimeout(resolve, 6000));
     let sentCount = 0;
     for (const contact of contacts) {
-        const username = contact.username;
-        if (!username) continue;
-        await checkStopPause(sendingControl, browser);
+      const username = contact.username;
+      if (!username) continue;
+      await checkStopPause(sendingControl, browser);
+      try {
+        const searchButtonAlt = await page.waitForSelector('a[role="link"] svg[aria-label="Search"]', { timeout: 10000 });
+        await searchButtonAlt.click();
+        await randomSleep(1, 2);
+        await checkStopPause(browser);
         try {
-            const searchButtonAlt = await page.waitForSelector('a[role="link"] svg[aria-label="Search"]', { timeout: 10000 });
-            await searchButtonAlt.click();
-            await randomSleep(1, 2);
+          await checkStopPause(browser);
+          const searchInput = await page.waitForSelector('input[aria-label="Search input"]', { timeout: 10000 });
+          await searchInput.fill('');
+          await randomSleep(2, 3);
+          for (const char of username) {
             await checkStopPause(browser);
-            try {
-                await checkStopPause(browser);
-                const searchInput = await page.waitForSelector('input[aria-label="Search input"]', { timeout: 10000 });
-                await searchInput.fill('');
-                await randomSleep(2, 3);
-                for (const char of username) {
-                    await checkStopPause(browser);
-                    await searchInput.press(char);
-                    await randomSleep(0.10, 0.20);
-                }
-                await randomSleep(2, 4);
-                await checkStopPause(browser);
-                const userResult = await page.waitForSelector('xpath=/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div[2]/div/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/a[1]', { timeout: 10000 });
-                await userResult.click();
-                await randomSleep(2, 5);
-            } catch (error) {
-                sendLiveLog(`❌ Could not find search results for ${username}, skipping...`);
-                continue;
-            }
-            try {
-                const pageContent = await page.content();
-                if (pageContent.toLowerCase().includes('sorry') && 
-                    (pageContent.toLowerCase().includes('page isn\'t available') || 
-                     pageContent.toLowerCase().includes('user not found'))) {
-                    sendLiveLog(`❌ Profile ${username} doesn't exist, skipping...`);
-                    continue;
-                }
-            } catch (error) {
-                sendLiveLog(`❌ Profile ${username} doesn't exist or failed to load, skipping...`);
-                continue;
-            }
-            try {
-                const messageButton = await page.waitForSelector('text=Message', { timeout: 5000 });
-                await messageButton.click();
-                await randomSleep(2, 4);
-            } catch (error) {
-                try {
-                    const threeDotsButton = await page.waitForSelector('div[role="button"] svg[aria-label="Options"]', { timeout: 60000 });
-                    await threeDotsButton.click();
-                    await checkStopPause(browser);
-                    await randomSleep(1, 3);
-                    const sendMessageButton = await page.waitForSelector('button:has-text("Send message")', { timeout: 5000 });
-                    await sendMessageButton.click();
-                    await randomSleep(2, 4);
-                } catch (error) {
-                    sendLiveLog(`❌ Could not find Message button or 3 dots menu for ${username}, skipping...`);
-                    continue;
-                }
-            }
-            await randomSleep(2, 4);
-            try {
-                const messageInput = await page.waitForSelector('div[contenteditable="true"][aria-label="Message"]', { timeout: 10000 });
-                await checkStopPause(browser);
-                // Pick a random template and personalize it
-                const template = templates[Math.floor(Math.random() * templates.length)];
-                const personalizedMessage = template.replace(/{{(.*?)}}/g, (_, key) => contact[key.trim()] || '');
-                await messageInput.fill(''); // Clear the input
-                await randomSleep(0.5, 1.5);
-                // Sleep for a random time before sending (user-configurable)
-                for (const char of personalizedMessage) {
-                    await checkStopPause(browser);
-                    await messageInput.press(char);
-                    await randomSleep(0.10, 0.20);
-                }
-                await randomSleep(1, 2);
-                await messageInput.press('Enter');
-                sendLiveLog(`✅ Sent to ${username}`);
-                sentCount++;
-                await randomSleep(sleepMin, sleepMax);
-            } catch (error) {
-                sendLiveLog(`❌ Failed to load DM page for ${username}, skipping...`);
-                continue;
-            }
+            await searchInput.press(char);
+            await randomSleep(0.10, 0.20);
+          }
+          await randomSleep(2, 4);
+          await checkStopPause(browser);
+          const userResult = await page.waitForSelector('xpath=/html/body/div[1]/div/div/div[2]/div/div/div[1]/div[1]/div[2]/div/div/div[2]/div/div/div/div[2]/div/div/div[2]/div/a[1]', { timeout: 10000 });
+          await userResult.click();
+          await randomSleep(2, 5);
         } catch (error) {
-            sendLiveLog(`❌ Failed to message ${username}: ${error.message}`);
+          sendLiveLog(`❌ Could not find search results for ${username}, skipping...`);
+          continue;
+        }
+        const current_username = extractUsernameFromUrl(page.url());
+        try {
+          const pageContent = await page.content();
+          if (pageContent.toLowerCase().includes('sorry') &&
+            (pageContent.toLowerCase().includes('page isn\'t available') ||
+              pageContent.toLowerCase().includes('user not found'))) {
+            sendLiveLog(`❌ Profile ${username} doesn't exist, skipping...`);
             continue;
+          }
+        } catch (error) {
+          sendLiveLog(`❌ Profile ${username} doesn't exist or failed to load, skipping...`);
+          continue;
         }
-        if (sentCount % batchCount === 0) {
-            const batchSleep = Math.random() * (batchSleepMax - batchSleepMin) + batchSleepMin;
-            sendLiveLog(`⏸️ Batch sleep for ${batchSleep.toFixed(1)}s after ${sentCount} messages...`);
-            await new Promise(resolve => setTimeout(resolve, batchSleep * 1000));
+        try {
+          const messageButton = await page.waitForSelector('text=Message', { timeout: 5000 });
+          await messageButton.click();
+          await randomSleep(2, 4);
+        } catch (error) {
+          try {
+            const threeDotsButton = await page.waitForSelector('div[role="button"] svg[aria-label="Options"]', { timeout: 60000 });
+            await threeDotsButton.click();
+            await checkStopPause(browser);
+            await randomSleep(1, 3);
+            const sendMessageButton = await page.waitForSelector('button:has-text("Send message")', { timeout: 5000 });
+            await sendMessageButton.click();
+            await randomSleep(2, 4);
+          } catch (error) {
+            sendLiveLog(`❌ Could not find Message button or 3 dots menu for ${username}, skipping...`);
+            continue;
+          }
         }
+        await randomSleep(2, 4);
+        try {
+          const messageInput = await page.waitForSelector('div[contenteditable="true"][aria-label="Message"]', { timeout: 10000 });
+          await checkStopPause(browser);
+
+          // Pick a random template and personalize it
+          const template = templates[Math.floor(Math.random() * templates.length)];
+          const personalizedMessage = template.replace(/{{(.*?)}}/g, (_, key) => contact[key.trim()] || '');
+          await messageInput.fill(''); // Clear the input
+          await randomSleep(0.5, 1.5);
+
+          // Sleep for a random time before sending (user-configurable)
+          await checkStopPause(browser);
+          await messageInput.fill(personalizedMessage);
+          await randomSleep(sleepMin, sleepMax);
+
+          await messageInput.press('Enter');
+          sendLiveLog(`✅ Sent to ${username}`);
+          sentCount++;
+          await randomSleep(1, 2);
+        } catch (error) {
+          sendLiveLog(`❌ Failed to load DM page for ${username}, skipping...`);
+          const template = templates[Math.floor(Math.random() * templates.length)];
+          const personalizedMessage = template.replace(/{{(.*?)}}/g, (_, key) => contact[key.trim()] || '');
+          console.log(current_username);
+          try {
+            const response = await fetch('http://localhost:6969/send_dm', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                username: current_username,
+                message: personalizedMessage
+              })
+            });
+
+            const result = await response.json();
+            if (result.ok) {
+              sendLiveLog(`✅ Fallback sent to ${username} via Flask`);
+            } else {
+              sendLiveLog(`❌ Fallback failed for ${username}: ${result.error}`);
+            }
+          } catch (e) {
+            sendLiveLog(`❌ Could not connect to Flask server for ${username}: ${e.message}`);
+          }
+          continue;
+        }
+      } catch (error) {
+        sendLiveLog(`❌ Failed to message ${username}: ${error.message}`);
+        continue;
+      }
+      if (sentCount % batchCount === 0) {
+        const batchSleep = Math.random() * (batchSleepMax - batchSleepMin) + batchSleepMin;
+        sendLiveLog(`⏸️ Batch sleep for ${batchSleep.toFixed(1)}s after ${sentCount} messages...`);
+        await new Promise(resolve => setTimeout(resolve, batchSleep * 1000));
+      }
     }
     await browser.close();
     return { ok: true };
@@ -173,34 +196,38 @@ function sendLiveLog(message) {
 
 async function checkStopPause(browser) {
   if (sendingControl.stopped) {
-      if (browser) await browser.close();
-      throw new Error('Stopped by user');
+    if (browser) await browser.close();
+    throw new Error('Stopped by user');
   }
   while (sendingControl.paused) {
-      if (sendingControl.stopped) {
-          if (browser) await browser.close();
-          throw new Error('Stopped by user');
-      }
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    if (sendingControl.stopped) {
+      if (browser) await browser.close();
+      throw new Error('Stopped by user');
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
   }
 }
 // Helper function for random sleep
 const randomSleep = (min, max) => {
-    const delay = Math.random() * (max - min) + min;
-    return new Promise(resolve => setTimeout(resolve, delay * 1000));
+  const delay = Math.random() * (max - min) + min;
+  return new Promise(resolve => setTimeout(resolve, delay * 1000));
 };
 
 // Helper function to check if page is loaded
 async function waitForPageLoad(page, timeout = 15000) {
+  try {
+    await page.waitForLoadState('networkidle', { timeout });
+    return true;
+  } catch (e) {
     try {
-        await page.waitForLoadState('networkidle', { timeout });
-        return true;
-    } catch (e) {
-        try {
-            await page.waitForLoadState('domcontentloaded', { timeout });
-            return true;
-        } catch (e2) {
-            return false;
-        }
+      await page.waitForLoadState('domcontentloaded', { timeout });
+      return true;
+    } catch (e2) {
+      return false;
     }
+  }
+}
+function extractUsernameFromUrl(url) {
+    const match = url.match(/^https:\/\/www\.instagram\.com\/([^\/?#]+)/i);
+    return match ? match[1] : null;
 }
